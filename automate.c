@@ -1,6 +1,7 @@
 #include "automate.h"
 #include <stdio.h>
 
+
 /* Determine si le caractère passé en paramètre est une lettre de l'alphabet (minuscule ou majuscule) 
  - param : 
         - char c : un caractère 
@@ -48,185 +49,198 @@ int is_separator(char c) {
     return (c == ' ' || c == '\n' || c == '\t');
 }
 
-/* Effectue une étape de l'automate 
+/* Détermine si un fichier respecte les normes SMGL
  - param :
-        - char c : le caratère lu
-        - Etats currentEtat : l'etat actuel de l'automate
+        - FILE *pfile : le contexte du fichier texte déjà ouvert
  - return :
-        - l'état de sortie si une transition a pu se faire depuis l'état currentEtat
-        - -1 si aucune transition n'a pu se faire depuis l'état currentEtat
+        - 0 si le fichier respecte les normes SGML
+        - tout autre valeur sinon
 */
-int automate(char c, Etats currentEtat) {
+int automate(FILE *pFile) {
 
-    //Debug 
-    //printf("Caractere '%c' || Etat %d \n", c, currentEtat);
+    Etats currentEtat = EtatDebut;
+    char c;
+    
+    while(!feof(pFile) && currentEtat != EtatErreur) {      // Tant que le fichier n'est pas fini
+        c = fgetc(pFile);                                   // On récupère le caractère courant
+        // --------- Debug --------- 
+        //printf("Caractere '%c' || Etat %d \n", c, currentEtat);
+        switch(currentEtat) {
+            case EtatDebut:
+                if (c == '<') {
+                    currentEtat = ChevronG;
+                } else {
+                    currentEtat = EtatDebut;
+                }
+                break; 
 
-    switch(currentEtat) {
-        case EtatDebut:
-            if (c == '<') {
-                currentEtat = ChevronG;
-            } else {
-                currentEtat = EtatDebut;
-            }
-            break; 
+            case ChevronG:
+                if (is_letter(c)) {
+                    currentEtat = NomBalise;
+                    break;
+                }
+                if (c == '/') {
+                    currentEtat = NomBaliseFermante1;
+                    break;
+                }
+                currentEtat = EtatErreur;
+                break;
+                
 
-        case ChevronG:
-            if (is_letter(c)) {
-                currentEtat = NomBalise;
-                break;
-            }
-            if (c == '/') {
-                currentEtat = NomBaliseFermante1;
-                break;
-            }
-            return -1;
+            case NomBalise:
+                if (c == '>') {
+                    currentEtat = EtatDebut;
+                    break;
+                }
+                if (is_separator(c)) {
+                    currentEtat = EspaceApresNomBalise;
+                    break;
+                }
 
-        case NomBalise:
-            if (c == '>') {
-                currentEtat = EtatDebut;
+                if (is_letter(c) || is_number(c)) {
+                    currentEtat = NomBalise;
+                    break;
+                }
+                currentEtat = EtatErreur;
                 break;
-            }
-            if (is_separator(c)) {
-                currentEtat = EspaceApresNomBalise;
-                break;
-            }
 
-            if (is_letter(c) || is_number(c)) {
-                currentEtat = NomBalise;
+            case EspaceApresNomBalise:
+                if (c == '>') {
+                    currentEtat = EtatDebut;
+                    break;
+                }
+
+                if (is_separator(c)) {
+                    currentEtat = EspaceApresNomBalise;
+                    break;
+                }
+
+                if (is_letter(c)) {
+                    currentEtat = NomAttribut;
+                    break;
+                }
+                currentEtat = EtatErreur;
                 break;
-            }
+
+            case NomAttribut:
+                if (c == '=') {
+                    currentEtat = EgalAttribut;
+                    break;
+                }
+
+                if (is_letter(c) || is_number(c) || c == '-') {
+                    currentEtat = NomAttribut;
+                    break;
+                }
+                currentEtat = EtatErreur;
+                break;
             
-            return -1;
-
-        case EspaceApresNomBalise:
-            if (c == '>') {
-                currentEtat = EtatDebut;
+            case EgalAttribut:
+                if (c == '"') {
+                    currentEtat = DoubleQuoteAttribut1;
+                    break;
+                }
+                if (c == '\'') {
+                    currentEtat = SimpleQuoteAttribut1;
+                    break;
+                }
+                if (is_letter(c)) {
+                    currentEtat = ValeurBruteAttribut;
+                    break;
+                }
+                currentEtat = EtatErreur;
                 break;
-            }
 
-            if (is_separator(c)) {
-                currentEtat = EspaceApresNomBalise;
+            case ValeurBruteAttribut:
+
+                if (c == '>') {
+                    currentEtat = EtatDebut;
+                    break;
+                }
+
+                if (is_separator(c)) {
+                    currentEtat = SimpleQuoteAttribut1;
+                    break;
+                }
+                
+                if (is_letter(c) || is_number(c)) {
+                    currentEtat = ValeurBruteAttribut;
+                    break;
+                }
+                currentEtat = EtatErreur;
                 break;
-            }
 
-            if (is_letter(c)) {
-                currentEtat = NomAttribut;
+            case DoubleQuoteAttribut1:
+                if (c != '"') {
+                    currentEtat = DoubleQuoteAttribut1;
+                } else {
+                    currentEtat = DoubleQuoteAttribut2;
+                }
                 break;
-            }
 
-            return -1;
-
-        case NomAttribut:
-            if (c == '=') {
-                currentEtat = EgalAttribut;
+            case SimpleQuoteAttribut1:
+                if (c != '\'') {
+                    currentEtat = SimpleQuoteAttribut1;
+                } else {
+                    currentEtat = SimpleQuoteAttribut2;
+                }
                 break;
-            }
 
-            if (is_letter(c) || is_number(c) || c == '-') {
-                currentEtat = NomAttribut;
+            case DoubleQuoteAttribut2:
+                if(c == '>') {
+                    currentEtat = EtatDebut;
+                    break;
+                }
+
+                if (is_separator(c)) {
+                    currentEtat = EspaceApresNomBalise;
+                    break;
+                }
+                
+                currentEtat = EtatErreur;
                 break;
-            }
 
-            return -1;
+            case SimpleQuoteAttribut2:
+                if(c == '>') {
+                    currentEtat = EtatDebut;
+                    break;
+                }
+
+                if (is_separator(c)) {
+                    currentEtat = EspaceApresNomBalise;
+                    break;
+                }
+
+                return -1;
+
+            case NomBaliseFermante1:
+                if (is_letter(c)) {
+                    currentEtat = NomBaliseFermante2;
+                    break;
+                }
+                currentEtat = EtatErreur;
+                break;
+
+            case NomBaliseFermante2:
+                if(c == '>') {
+                    currentEtat = EtatDebut;
+                    break;
+                }
+                
+                if (is_letter(c) || is_number(c)) {
+                    currentEtat = NomBaliseFermante2;
+                    break;
+                }
+                
+                currentEtat = EtatErreur;
+                break;
+
+            default:
+                currentEtat = EtatErreur;
+                break;
         
-        case EgalAttribut:
-            if (c == '"') {
-                currentEtat = DoubleQuoteAttribut1;
-                break;
-            }
-            if (c == '\'') {
-                currentEtat = SimpleQuoteAttribut1;
-                break;
-            }
-            if (is_letter(c)) {
-                currentEtat = ValeurBruteAttribut;
-                break;
-            }
-            return -1;
-
-        case ValeurBruteAttribut:
-
-            if (c == '>') {
-                currentEtat = EtatDebut;
-                break;
-            }
-
-            if (is_separator(c)) {
-                currentEtat = SimpleQuoteAttribut1;
-                break;
-            }
-            
-            if (is_letter(c) || is_number(c)) {
-                currentEtat = ValeurBruteAttribut;
-                break;
-            }
-            return -1;
-
-        case DoubleQuoteAttribut1:
-            if (c != '"') {
-                currentEtat = DoubleQuoteAttribut1;
-            } else {
-                currentEtat = DoubleQuoteAttribut2;
-            }
-            break;
-
-        case SimpleQuoteAttribut1:
-            if (c != '\'') {
-                currentEtat = SimpleQuoteAttribut1;
-            } else {
-                currentEtat = SimpleQuoteAttribut2;
-            }
-            break;
-
-        case DoubleQuoteAttribut2:
-            if(c == '>') {
-                currentEtat = EtatDebut;
-                break;
-            }
-
-            if (is_separator(c)) {
-                currentEtat = EspaceApresNomBalise;
-                break;
-            }
-            
-            return -1;
-
-        case SimpleQuoteAttribut2:
-            if(c == '>') {
-                currentEtat = EtatDebut;
-                break;
-            }
-
-            if (is_separator(c)) {
-                currentEtat = EspaceApresNomBalise;
-                break;
-            }
-
-            return -1;
-
-        case NomBaliseFermante1:
-            if (is_letter(c)) {
-                currentEtat = NomBaliseFermante2;
-                break;
-            }
-            return -1;
-
-        case NomBaliseFermante2:
-            if(c == '>') {
-                currentEtat = EtatDebut;
-                break;
-            }
-            
-            if (is_letter(c) || is_number(c)) {
-                currentEtat = NomBaliseFermante2;
-                break;
-            }
-            
-            return -1;
-
-        default:
-            return -1;
-        
+        }
     }
-    return currentEtat;
+    
+    return currentEtat == EtatDebut;    // Le fichier est bon si la dernière transition effectuée est celle du chevreron droit
 }

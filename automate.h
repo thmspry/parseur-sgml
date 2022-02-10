@@ -1,3 +1,4 @@
+#include <stdio.h>
 typedef enum {
     EtatDebut,
     ChevronG,
@@ -12,6 +13,7 @@ typedef enum {
     SimpleQuoteAttribut2,
     NomBaliseFermante1,
     NomBaliseFermante2,
+    EtatErreur
 } Etats;
 
 int is_letter(char c);
@@ -20,4 +22,4 @@ int is_number(char c);
 
 int is_separator(char c);
 
-int automate(char caratere, Etats currentEtat);
+int automate(FILE *);
