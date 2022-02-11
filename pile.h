@@ -1,4 +1,4 @@
-#define TAILLE_PILE 3
+#define TAILLE_PILE 20
 #define TAILLE_CHAINE 20
 
 typedef struct {
