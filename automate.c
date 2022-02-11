@@ -51,6 +51,17 @@ int is_separator(char c) {
     return (c == ' ' || c == '\n' || c == '\t');
 }
 
+/* Concatène une chaine à un caractère, incrément l'index de fin de tableau par la même occasion
+ - param :
+        - char* tab : tableau de caratère (string)
+        - char c : caratère a concatener
+        - int *index_fin : index de fin effective du tableau
+*/
+void concatene_caracete(char tab[], char c, int *index_fin) {
+    tab[*index_fin] = c;    // Completion du nom de la balise avec le caractère courant
+    (*index_fin)++;         // Le tableau de char est plus grand, il faut incrémenter l'index de fin de tableau effectif
+}
+
 /* Détermine si un fichier respecte les normes SMGL
  - param :
         - FILE *pfile : le contexte du fichier texte déjà ouvert
@@ -89,8 +100,7 @@ int automate(FILE *pFile) {
 
             case ChevronG:
                 if (is_letter(c)) {
-                    cur_nom_balide[compteur_chaine] = c;
-                    compteur_chaine++;
+                    concatene_caracete(cur_nom_balide, c, &compteur_chaine);
                     currentEtat = NomBalise;
                 } else if (c == '/') {
                     currentEtat = NomBaliseFermante1;
@@ -102,7 +112,7 @@ int automate(FILE *pFile) {
 
             case NomBalise:
                 if (c == '>' || is_separator(c)) {          // Fin du nom de la balise
-                    cur_nom_balide[compteur_chaine] = '\0';     // Caractere de fin de chaine
+                    concatene_caracete(cur_nom_balide, '\0', &compteur_chaine); // Caractere de fin de chaine
                     compteur_chaine = 0;                        // Remise à 0 pour le prochain nom de balise
                     pile_push(&pile_balise, cur_nom_balide);    // Ajout de cette balise dans la pile
                     if (c == '>') {
@@ -111,8 +121,7 @@ int automate(FILE *pFile) {
                         currentEtat = EspaceApresNomBalise;
                     }
                 } else if (is_letter(c) || is_number(c)) {
-                    cur_nom_balide[compteur_chaine] = c;        // Completion de le nom de la balise avec le caractère courant
-                    compteur_chaine++;
+                    concatene_caracete(cur_nom_balide, c, &compteur_chaine);
                     currentEtat = NomBalise;
 
                 } else {
@@ -217,7 +226,7 @@ int automate(FILE *pFile) {
 
             case NomBaliseFermante2:
                 if(c == '>') {          // Fin du nom de la balise
-                    cur_nom_balide[compteur_chaine] = '\0';
+                    concatene_caracete(cur_nom_balide, '\0', &compteur_chaine); // Caractere de fin de chaine
                     compteur_chaine = 0;
                     char *top = pile_top(&pile_balise);
                     
