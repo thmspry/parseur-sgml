@@ -72,11 +72,12 @@ void concatene_caracete(char tab[], char c, int *index_fin) {
 int automate(FILE *pFile) {
 
     Etats currentEtat = EtatDebut;
-    char c;
-    char cur_nom_balide[TAILLE_CHAINE];
-    int compteur_chaine = 0;
-    Pile pile_balise;
-    pile_init(&pile_balise);
+    char c;                             // Caractère scanné
+    char cur_nom_balide[TAILLE_CHAINE]; // Stockage du nom de la balise pour la pile
+    int compteur_chaine = 0;            // Index s'incrémentant pour stocker le nom de la balise
+    Pile pile_balise;                   // Pile de chaine de caractère servant à l'analyse hiérachique
+
+    pile_init(&pile_balise);            // Initialisation de la structure pile
     
     while(!feof(pFile) && currentEtat != EtatErreur) {      // Tant que le fichier n'est pas fini
         c = fgetc(pFile);                                   // On récupère le caractère courant
@@ -84,8 +85,7 @@ int automate(FILE *pFile) {
         // printf("Caractere '%c' || Etat %d \n", c, currentEtat);
         switch(currentEtat) {
             /*  On tombe dans cet état si le caractère scanné ne permet de faire aucun trainsition
-                de puis son état actuel
-            */
+                de puis son état actuel */
             case EtatErreur:    
                 return 0;
                 break;

@@ -2,9 +2,16 @@
 #include "automate.h"
 
 
-int main () {
+int main (int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Veuillez indiquez le chemin vers le fichier à parser en argument.\n");
+        return 0;
+    }
+    if (argc > 2) {
+        printf("Les arguments suivant le chemin vers le nom du fichier ne peuvent pas être pris en compte.\n");
+    }
     FILE *pFile;
-    if ((pFile = fopen("./data/fichier.html","rt"))) {          // Ouverture fichier
+    if ((pFile = fopen(argv[1],"rt"))) {          // Ouverture fichier, indiquez le chemin adéquat
         if (automate(pFile)) {
             printf("Le fichier respecte les normes SGML.\n");
         } else {
